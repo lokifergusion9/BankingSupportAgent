@@ -1,0 +1,38 @@
+[project]
+name = "bankingsupportagent"
+version = "0.1.0"
+description = "Multi-agent banking support assistant (LangGraph, Groq, RAG, FastAPI)"
+readme = "README.md"
+authors = [
+    { name = "lokesh", email = "lokeshkumar22119032@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "bcrypt>=5.0.0",
+    "fastapi>=0.143.0",
+    "httpx>=0.28.1",
+    "ipykernel>=7.4.0",
+    "langchain>=1.4.3",
+    "langchain-chroma>=1.1.0",
+    "langchain-community>=0.4.2",
+    "langchain-core>=1.6.6",
+    "langchain-groq>=1.1.3",
+    "langchain-huggingface>=1.2.2",
+    "langchain-text-splitters>=1.1.2",
+    "langgraph>=1.2.12",
+    "langgraph-checkpoint-sqlite>=3.1.3",
+    "pyjwt[crypto]>=2.15.1",
+    "pypdf>=6.19.0",
+    "pytest>=9.1.1",
+    "python-dotenv>=1.2.3",
+    "rank-bm25>=0.2.2",
+    "sentence-transformers>=6.1.0",
+    "uvicorn>=0.54.0",
+]
+
+[project.scripts]
+bankingsupportagent = "bankingsupportagent:main"
+
+[build-system]
+requires = ["uv_build>=0.12.13,<0.13.0"]
+build-backend = "uv_build"
