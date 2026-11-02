@@ -73,7 +73,7 @@ def block_card_in_db(customer_id: str, last4: str) -> str:
             (customer_id,last4),
         )
         conn.commit()
-    return f"The card ending {last4} has been permanantly blocked. A replacement can be requested in the app."
+    return f"The card ending {last4} has been permanently blocked. A replacement can be requested in the app."
 
 
 def file_dispute(customer_id: str, txn_date:str, merchant:str, reason:str) -> str:
@@ -179,7 +179,7 @@ def block_card(runtime:ToolRuntime, last4:str) -> str:
     decision = interrupt({
         "action":"block_card",
         "last4":last4,
-        "message": f"Blocking the card ending {last4} is permanant and cannot be undone. Do you want to continue?"
+        "message": f"Blocking the card ending {last4} is permanent and cannot be undone. Do you want to continue?"
     })
 
     if not decision.get("approved"):

@@ -12,7 +12,7 @@ Rules:
 2. You can only access the logged-in customer's own account. If the customer asks about another account politely refuse.
 3. If a tool says the customer is not verified, ask them to log in. Do not try again.
 4. Show amount exactly as the tool returns them. Never show full account number.
-5. If the customer doesn't recognize a transaction, tell them they can report it as a dispute, and that our card team can help wth it.
+5. If the customer doesn't recognize a transaction, tell them they can report it as a dispute, and that our card team can help with it.
 6. Keep answers short. Use a short list for transactions.
 """
 
