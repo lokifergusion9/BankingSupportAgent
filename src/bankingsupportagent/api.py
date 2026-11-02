@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from bankingsupportagent.auth import authenticate, create_access_token, decode_access_token
 from bankingsupportagent.config import CHECKPOINT_DB_PATH
 from bankingsupportagent.graph import build_graph
+from bankingsupportagent.guardrails import normalize_reply
 from bankingsupportagent.rag.retriever import get_vector_store
 from bankingsupportagent.tools.account_tools import get_connection
 
@@ -110,7 +111,7 @@ def to_response(result: dict) -> ChatResponse:
     if "__interrupt__" in result:
         question = result["__interrupt__"][0].value["message"]
         return ChatResponse(status="needs_confirmation", reply=question, route=result.get("route"))
-    return ChatResponse(status="ok", reply=result["messages"][-1].content, route=result.get("route"))
+    return ChatResponse(status="ok", reply=normalize_reply(result["messages"][-1].content), route=result.get("route"))
 
 
 # ---------- 6. Endpoints ----------

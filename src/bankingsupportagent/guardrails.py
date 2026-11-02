@@ -21,6 +21,19 @@ def mask_sensitive(text: str) -> str:
     return text
 
 
+# Look-alike characters the LLM sometimes writes: they break copy-paste and exact matching of IDs like DSP-000011
+LOOKALIKES = str.maketrans({
+    "‐": "-",      # hyphen
+    "‑": "-",      # non-breaking hyphen
+    " ": " ",      # non-breaking space
+    " ": " ",      # narrow non-breaking space
+})
+
+def normalize_reply(text: str) -> str:
+    """Replace look-alike hyphens and spaces in a reply with plain ones."""
+    return text.translate(LOOKALIKES)
+
+
 def guardrail_node(state: SupportState):
     last = state["messages"][-1]
     masked = mask_sensitive(last.content)

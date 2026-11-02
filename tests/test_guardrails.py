@@ -1,6 +1,6 @@
 import pytest
 
-from bankingsupportagent.guardrails import mask_sensitive
+from bankingsupportagent.guardrails import mask_sensitive, normalize_reply
 
 
 @pytest.mark.parametrize("text, expected", [
@@ -22,3 +22,7 @@ def test_sensitive_data_is_masked(text, expected):
 ])
 def test_normal_text_is_unchanged(text):
     assert mask_sensitive(text) == text
+
+
+def test_lookalike_characters_become_plain():
+    assert normalize_reply("DSP‑000011 | Rs. 85,420.50") == "DSP-000011 | Rs. 85,420.50"

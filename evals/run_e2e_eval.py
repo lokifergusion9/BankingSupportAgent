@@ -11,6 +11,7 @@ from langgraph.types import Command
 from bankingsupportagent.config import get_llm
 from bankingsupportagent.db.seed import seed
 from bankingsupportagent.graph import build_graph
+from bankingsupportagent.guardrails import normalize_reply
 from bankingsupportagent.tools.card_tools import fetch_card_status
 from evals.e2e_cases import E2E_CASES
 
@@ -69,7 +70,7 @@ def run_conversation(graph, case):
 def check(case, result, interrupts, stored):
     """Return a list of failed checks (an empty list means the case passed)."""
     failures = []
-    reply = result["messages"][-1].content
+    reply = normalize_reply(result["messages"][-1].content)     # same cleanup the API applies
     reply_lower = reply.lower()
 
     expected_route = case.get("expected_route")
