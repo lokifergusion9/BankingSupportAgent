@@ -1,4 +1,4 @@
-from groq import BadRequestError
+from groq import APIError, BadRequestError
 from contextlib import closing
 from typing import Literal
 
@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from langchain.messages import SystemMessage, HumanMessage, AIMessage
 
 from bankingsupportagent.config import get_llm
+from bankingsupportagent.llm_errors import model_could_not_fill_form
 from bankingsupportagent.state import SupportState
 from bankingsupportagent.agents.router import format_history
 from bankingsupportagent.tools.account_tools import get_connection
@@ -53,7 +54,7 @@ the ticket.
 
 Rules:
 1. Choose the category that best fits the customer's main problem.
-2. Write a short, factual summary that lets a specialist acts without reading the whole chat.
+2. Write a short, factual summary that lets a specialist act without reading the whole chat.
 3. Include amounts, dates and merchant name if the customer gave them.
 4. Never include full card numbers, account numbers, PINs, OTPs, or passwords in the summary. Last 4 digits are fine.
 5. Do not add anything the customer did not say."""
@@ -70,13 +71,36 @@ def create_ticket(customer_id, category:str, priority:str, summary:str) -> str:
     return f"TKT-{ticket_number:06d}"
 
 
+def list_tickets(customer_id: str) -> list[dict]:
+    """The customer's own tickets, newest first."""
+    with closing(get_connection()) as conn:
+        rows = conn.execute(
+            "SELECT ticket_id, category, priority, summary, status, created_at "
+            "FROM tickets WHERE customer_id = ? ORDER BY ticket_id DESC",
+            (customer_id,),
+        ).fetchall()
+    return [
+        {
+            "reference": f"TKT-{r['ticket_id']:06d}",
+            "category": r["category"],
+            "priority": r["priority"],
+            "summary": r["summary"],
+            "status": r["status"],
+            "created_at": r["created_at"],
+        }
+        for r in rows
+    ]
+
+
 def escalation(state:SupportState):
     # 1. LLM understand the conversation and fill in the ticket (structured output)
     conversation = format_history(state["messages"][-7:])
     llm = get_llm().with_structured_output(EscalationTicket)
     try:
         ticket = llm.invoke([SystemMessage(ESCALATION_PROMPT), HumanMessage(conversation)])
-    except BadRequestError:
+    except (BadRequestError, APIError) as error:
+        if not model_could_not_fill_form(error):
+            raise
         # The model could not fill in the ticket. Still create one, so nothing is lost.
         ticket = EscalationTicket(
             category="human_request",

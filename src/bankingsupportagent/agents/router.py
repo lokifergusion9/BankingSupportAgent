@@ -1,8 +1,9 @@
-from groq import BadRequestError
+from groq import APIError, BadRequestError
 from typing import Literal
 from pydantic import BaseModel, Field
 from langchain.messages import SystemMessage, HumanMessage, AIMessage
 from bankingsupportagent.config import get_llm
+from bankingsupportagent.llm_errors import model_could_not_fill_form
 from bankingsupportagent.state import SupportState
 
 HISTORY_MESSAGES = 6
@@ -61,17 +62,12 @@ def router_node(state: SupportState):
     try:
         decision = route_query(messages[-1].content, history)
         return {"route": decision.route, "route_reason": decision.reason}
-    except BadRequestError:
+    except (BadRequestError, APIError) as error:
+        if not model_could_not_fill_form(error):
+            raise
         # The model refused or failed to fill in the RouteDecision (e.g. on an attack message).
         # Never crash: hand the conversation to a human instead.
         return {
             "route": "escalate",
             "route_reason": "Router could not classify the message; sent to a human to be safe.",
         }
-
-
-# def router_node(state: SupportState):
-#     messages = state["messages"]
-#     history = format_history(messages[-(HISTORY_MESSAGES + 1):-1])
-#     decision = route_query(messages[-1].content, history)
-#     return {"route": decision.route, "route_reason": decision.reason}
