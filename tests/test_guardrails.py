@@ -9,6 +9,10 @@ from bankingsupportagent.guardrails import mask_sensitive, normalize_reply
     ("account 50100012345678", "account [number ending 5678]"),
     ("my otp is 482913", "my otp is [REDACTED]"),
     ("PIN: 4821", "PIN: [REDACTED]"),
+    ("my pan is ABCDE1234F", "my pan is [PAN removed]"),
+    ("aadhaar 2345 6789 0123", "aadhaar [number ending 0123]"),
+    ("the cvv: 123 on my card", "the cvv: [REDACTED] on my card"),
+    ("password=hunter2", "password=[REDACTED]"),
 ])
 def test_sensitive_data_is_masked(text, expected):
     assert mask_sensitive(text) == expected
@@ -19,6 +23,8 @@ def test_sensitive_data_is_masked(text, expected):
     "Block my card ending 4821",
     "Can I reset my password?",
     "What is the FD rate for 1 year?",
+    "My ticket is TKT-000004 and dispute DSP-000011",
+    "Send it to rahul.sharma@example.com",
 ])
 def test_normal_text_is_unchanged(text):
     assert mask_sensitive(text) == text
@@ -26,3 +32,7 @@ def test_normal_text_is_unchanged(text):
 
 def test_lookalike_characters_become_plain():
     assert normalize_reply("DSP‑000011 | Rs. 85,420.50") == "DSP-000011 | Rs. 85,420.50"
+
+
+def test_stray_tool_citations_are_removed():
+    assert normalize_reply("The fee is **Rs 900**【search_policies】.") == "The fee is **Rs 900**."

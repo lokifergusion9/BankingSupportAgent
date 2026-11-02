@@ -10,6 +10,9 @@ LONG_NUMBER = re.compile(r"\b\d(?:[ -]?\d){8,18}\b")
 # A secret keyword followed by a value that contains a digit: "OTP is 482913", "pin: 4821"
 SECRET = re.compile(r"(?i)\b(otp|pin|cvv|password|passcode)\b(\s*(?:is|:|=)?\s*)(\S*\d\S*)")
 
+# Indian PAN card number: 5 letters, 4 digits, 1 letter
+PAN = re.compile(r"\b[A-Za-z]{5}\d{4}[A-Za-z]\b")
+
 def _mask_number(match) -> str:
     digits = re.sub(r"\D", "", match.group())
     return f"[number ending {digits[-4:]}]"
@@ -18,6 +21,7 @@ def mask_sensitive(text: str) -> str:
     """Hide secrets and long numbers before the text reaches any LLM or storage."""
     text = SECRET.sub(r"\1\2[REDACTED]", text)
     text = LONG_NUMBER.sub(_mask_number, text)
+    text = PAN.sub("[PAN removed]", text)
     return text
 
 
@@ -29,9 +33,12 @@ LOOKALIKES = str.maketrans({
     " ": " ",      # narrow non-breaking space
 })
 
+# Citation marks the model sometimes invents around a tool name, like 【search_policies】
+CITATION_MARK = re.compile(r"\s?【[^】]*】")
+
 def normalize_reply(text: str) -> str:
-    """Replace look-alike hyphens and spaces in a reply with plain ones."""
-    return text.translate(LOOKALIKES)
+    """Clean a reply: plain hyphens and spaces instead of look-alikes, no stray tool-name citations."""
+    return CITATION_MARK.sub("", text.translate(LOOKALIKES))
 
 
 def guardrail_node(state: SupportState):
