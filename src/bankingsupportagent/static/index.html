@@ -68,12 +68,13 @@
     .msg { max-width: 82%; padding: 10px 13px; border-radius: 12px; line-height: 1.45; white-space: pre-wrap; font-size: 15px; }
     .user { align-self: flex-end; background: var(--brand); color: #fff; border-bottom-right-radius: 4px; }
     .bot { align-self: flex-start; background: var(--brand-soft); border-bottom-left-radius: 4px; }
+    .bot.thinking { color: var(--muted); font-style: italic; }
     .meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
     .confirm { align-self: flex-start; background: var(--warn); border: 1px solid var(--warn-line); }
     .confirm .actions { margin-top: 10px; display: flex; gap: 8px; }
     .confirm button { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--warn-line); cursor: pointer; background: #fff; }
     .confirm button.yes { background: #b42318; color: #fff; border-color: #b42318; }
-    .error { align-self: center; color: #b42318; font-size: 13px; }
+    .error { align-self: center; color: #b42318; font-size: 13px; text-align: center; }
     .hint { color: var(--muted); font-size: 13px; text-align: center; margin-top: 30px; }
     #chat-form { display: flex; gap: 8px; padding: 14px 18px; border-top: 1px solid var(--line); }
     #chat-form input { flex: 1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; }
@@ -86,6 +87,7 @@
     <header>
       <h1>SecureBank Support</h1>
       <span id="who"></span>
+      <button class="secondary" id="tickets" type="button" hidden>My tickets</button>
       <button class="secondary" id="new-chat" type="button" hidden>New chat</button>
       <button class="secondary" id="logout" type="button" hidden>Log out</button>
     </header>
@@ -119,19 +121,31 @@
     const chatForm = document.getElementById("chat-form");
     const input = document.getElementById("input");
     const sendButton = document.getElementById("send");
+    const HINT = 'Try: "What is the FD rate for senior citizens?", "Show my last 3 transactions", or "Freeze my card ending 4821".';
 
-    let token = null;                    // the JWT from /login; kept only in memory
-    let threadId = crypto.randomUUID();
+    // The login lives in sessionStorage: a page refresh keeps you logged in and in the same chat,
+    // closing the tab forgets everything. (Storage can be blocked, so every access is wrapped.)
+    function remember(key, value) {
+      try { value === null ? sessionStorage.removeItem(key) : sessionStorage.setItem(key, value); } catch {}
+    }
+    function recall(key) {
+      try { return sessionStorage.getItem(key); } catch { return null; }
+    }
+
+    let token = recall("sb_token");
+    let customerId = recall("sb_customer");
+    let threadId = recall("sb_thread") || crypto.randomUUID();
 
     // ---------- Talking to the API ----------
 
-    async function post(path, body) {
+    function authHeaders() {
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;    // send the token with every request
+      return headers;
+    }
 
-      const response = await fetch(path, { method: "POST", headers, body: JSON.stringify(body) });
-      const data = await response.json();
-
+    async function readJson(response, path) {
+      const data = await response.json().catch(() => ({}));
       if (response.status === 401 && path !== "/login") {
         logout("Your session has expired. Please log in again.");
         throw new Error("Please log in again.");
@@ -140,38 +154,79 @@
       return data;
     }
 
+    async function post(path, body) {
+      const response = await fetch(path, { method: "POST", headers: authHeaders(), body: JSON.stringify(body) });
+      return readJson(response, path);
+    }
+
+    async function get(path) {
+      const response = await fetch(path, { headers: authHeaders() });
+      return readJson(response, path);
+    }
+
+    // Reads the answer as it is written. Calls onToken(text) for each piece and returns the final result.
+    async function streamChat(message, onToken) {
+      const response = await fetch("/chat/stream", {
+        method: "POST", headers: authHeaders(), body: JSON.stringify({ thread_id: threadId, message }),
+      });
+      if (!response.ok) return readJson(response, "/chat/stream");    // errors before streaming starts are plain JSON
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let end;
+        while ((end = buffer.indexOf("\n\n")) !== -1) {
+          const block = buffer.slice(0, end);
+          buffer = buffer.slice(end + 2);
+          const event = /^event: (.*)$/m.exec(block)?.[1];
+          const data = JSON.parse(/^data: (.*)$/m.exec(block)?.[1] ?? "{}");
+          if (event === "token") onToken(data.text);
+          else if (event === "done") return data;
+          else if (event === "error") throw new Error(data.detail);
+        }
+      }
+      throw new Error("The connection closed before the answer was complete. Please try again.");
+    }
+
     // ---------- Login and logout ----------
 
     document.getElementById("login-form").addEventListener("submit", async (event) => {
       event.preventDefault();
-      const customerId = document.getElementById("login-id").value.trim();
+      const id = document.getElementById("login-id").value.trim();
       const password = document.getElementById("login-password").value;
       document.getElementById("login-error").textContent = "";
       try {
-        const data = await post("/login", { customer_id: customerId, password });
+        const data = await post("/login", { customer_id: id, password });
         token = data.access_token;
+        customerId = id;
+        remember("sb_token", token);
+        remember("sb_customer", id);
         document.getElementById("login-password").value = "";
-        showChat(customerId);
+        showChat();
+        newChat();
       } catch (error) {
         document.getElementById("login-error").textContent = error.message;
       }
     });
 
-    function showChat(customerId) {
+    function showChat() {
       document.getElementById("login-view").hidden = true;
       document.getElementById("chat-view").hidden = false;
-      document.getElementById("new-chat").hidden = false;
-      document.getElementById("logout").hidden = false;
+      for (const id of ["tickets", "new-chat", "logout"]) document.getElementById(id).hidden = false;
       document.getElementById("who").textContent = `Logged in as ${customerId}`;
-      newChat();
     }
 
     function logout(message = "") {
       token = null;
+      customerId = null;
+      for (const key of ["sb_token", "sb_customer", "sb_thread"]) remember(key, null);
       document.getElementById("login-view").hidden = false;
       document.getElementById("chat-view").hidden = true;
-      document.getElementById("new-chat").hidden = true;
-      document.getElementById("logout").hidden = true;
+      for (const id of ["tickets", "new-chat", "logout"]) document.getElementById(id).hidden = true;
       document.getElementById("who").textContent = "";
       document.getElementById("login-error").textContent = message;
     }
@@ -188,19 +243,25 @@
       return escapeHtml(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     }
 
+    function scrollDown() {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
     function addMessage(text, who, route) {
       const div = document.createElement("div");
       div.className = `msg ${who}`;
       div.innerHTML = who === "user" ? escapeHtml(text) : formatReply(text);
-      if (route) {
-        const meta = document.createElement("div");
-        meta.className = "meta";
-        meta.textContent = `handled by: ${route} agent`;
-        div.appendChild(meta);
-      }
+      if (route) addRoute(div, route);
       messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+      scrollDown();
       return div;
+    }
+
+    function addRoute(div, route) {
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = `handled by: ${route} agent`;
+      div.appendChild(meta);
     }
 
     function addConfirmation(question) {
@@ -238,7 +299,9 @@
       div.className = "error";
       div.textContent = error.message;
       messagesEl.appendChild(div);
+      scrollDown();
       setBusy(false);
+      input.focus();
     }
 
     // ---------- Chat and approval ----------
@@ -258,27 +321,81 @@
       const text = input.value.trim();
       if (!text) return;
       input.value = "";
+      messagesEl.querySelector(".hint")?.remove();
       addMessage(text, "user");
       setBusy(true);
-      const thinking = addMessage("Thinking...", "bot");
+
+      const bubble = addMessage("Thinking...", "bot");
+      bubble.classList.add("thinking");
+      let written = "";
       try {
-        const data = await post("/chat", { thread_id: threadId, message: text });   // no customer_id: the token says who you are
-        thinking.remove();
-        showResult(data);
+        // no customer_id: the token says who you are
+        const data = await streamChat(text, (piece) => {
+          written += piece;
+          bubble.classList.remove("thinking");
+          bubble.innerHTML = formatReply(written);
+          scrollDown();
+        });
+        if (data.status === "needs_confirmation") {
+          bubble.remove();
+          showResult(data);
+        } else {
+          // The final reply is the one to keep: it can differ from what streamed (e.g. a polite fallback)
+          bubble.classList.remove("thinking");
+          bubble.innerHTML = formatReply(data.reply);
+          if (data.route) addRoute(bubble, data.route);
+          scrollDown();
+          setBusy(false);
+          input.focus();
+        }
       } catch (error) {
-        thinking.remove();
+        bubble.remove();
         showError(error);
       }
     });
 
+    document.getElementById("tickets").onclick = async () => {
+      try {
+        const { tickets } = await get("/tickets");
+        if (!tickets.length) return addMessage("You have no support tickets.", "bot");
+        const lines = tickets.map(t => `**${t.reference}** · ${t.category} · ${t.priority} priority · ${t.status}\n${t.summary}`);
+        addMessage(`Your support tickets:\n\n${lines.join("\n\n")}`, "bot");
+      } catch (error) {
+        showError(error);
+      }
+    };
+
     function newChat() {
       threadId = crypto.randomUUID();
-      messagesEl.innerHTML = '<p class="hint">Try: "What is the FD rate for senior citizens?", "Show my last 3 transactions", or "Freeze my card ending 4821".</p>';
+      remember("sb_thread", threadId);
+      messagesEl.innerHTML = `<p class="hint">${HINT}</p>`;
       setBusy(false);
       input.focus();
     }
 
     document.getElementById("new-chat").onclick = newChat;
+
+    // ---------- Page load: pick up where the customer left off ----------
+
+    async function restoreSession() {
+      if (!token) return;
+      try {
+        const saved = await get(`/history?thread_id=${encodeURIComponent(threadId)}`);   // a 401 here logs out
+        showChat();
+        remember("sb_thread", threadId);
+        messagesEl.innerHTML = "";
+        if (!saved.messages.length && !saved.pending_confirmation) {
+          messagesEl.innerHTML = `<p class="hint">${HINT}</p>`;
+        }
+        for (const m of saved.messages) addMessage(m.content, m.role === "user" ? "user" : "bot");
+        if (saved.pending_confirmation) addConfirmation(saved.pending_confirmation);
+      } catch {
+        // an expired login is handled in readJson; any other failure simply shows the login screen
+        if (token) logout();
+      }
+    }
+
+    restoreSession();
   </script>
 </body>
 </html>
