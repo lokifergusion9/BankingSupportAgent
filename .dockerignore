@@ -1,8 +1,13 @@
 .venv/
 .env
 keys/
-data/
+data/*
+!data/docs
 .git/
+.github/
 notebooks/
+evals/
+tests/
 __pycache__/
 *.pyc
+.pytest_cache/
