@@ -1,0 +1,183 @@
+{
+  "hit_at_k": 0.9428571428571428,
+  "top_k": 4,
+  "mrr": 0.833,
+  "total": 35,
+  "cases": [
+    {
+      "id": "min_balance",
+      "question": "What is the minimum balance for a savings account?",
+      "rank": 4
+    },
+    {
+      "id": "min_balance_penalty",
+      "question": "What happens if I don't keep enough money in my account?",
+      "rank": 10
+    },
+    {
+      "id": "fd_senior_1y",
+      "question": "What is the FD interest rate for senior citizens for 1 year?",
+      "rank": 1
+    },
+    {
+      "id": "fd_premature",
+      "question": "Is there a penalty if I break my fixed deposit early?",
+      "rank": 2
+    },
+    {
+      "id": "fd_tds",
+      "question": "When does the bank cut TDS on my FD interest?",
+      "rank": 3
+    },
+    {
+      "id": "fd_min_amount",
+      "question": "What is the smallest amount I can put in an FD?",
+      "rank": 2
+    },
+    {
+      "id": "tax_saver",
+      "question": "How long is the lock-in on a tax saving FD?",
+      "rank": 1
+    },
+    {
+      "id": "rd_minimum",
+      "question": "What is the minimum monthly instalment for a recurring deposit?",
+      "rank": 1
+    },
+    {
+      "id": "fd_overdraft",
+      "question": "Can I take a loan against my fixed deposit?",
+      "rank": 1
+    },
+    {
+      "id": "saturday",
+      "question": "Are branches open on Saturday?",
+      "rank": 1
+    },
+    {
+      "id": "helpline_hours",
+      "question": "Is the phone helpline available at night?",
+      "rank": 1
+    },
+    {
+      "id": "atm_limit",
+      "question": "How much cash can I withdraw from an ATM with a classic debit card?",
+      "rank": 1
+    },
+    {
+      "id": "contactless",
+      "question": "Do I need a PIN for contactless payments?",
+      "rank": 1
+    },
+    {
+      "id": "block_card",
+      "question": "How do I block my card if it is stolen?",
+      "rank": 1
+    },
+    {
+      "id": "freeze_card",
+      "question": "Can I temporarily freeze my card if I misplaced it?",
+      "rank": 1
+    },
+    {
+      "id": "replacement_fee",
+      "question": "How much does a replacement card cost?",
+      "rank": 1
+    },
+    {
+      "id": "international_fee",
+      "question": "What are the charges for using my card abroad?",
+      "rank": 1
+    },
+    {
+      "id": "cc_late_fee",
+      "question": "What is the late payment fee on my credit card?",
+      "rank": 1
+    },
+    {
+      "id": "cc_interest",
+      "question": "How much interest do I pay if I don't clear the whole credit card bill?",
+      "rank": 7
+    },
+    {
+      "id": "reward_value",
+      "question": "How much is a reward point worth?",
+      "rank": 1
+    },
+    {
+      "id": "liability_3days",
+      "question": "Will I get a refund if I report an unauthorised transaction quickly?",
+      "rank": 3
+    },
+    {
+      "id": "upi_failed",
+      "question": "My UPI payment failed but money was deducted, when will I get it back?",
+      "rank": 1
+    },
+    {
+      "id": "chargeback",
+      "question": "How long does a card chargeback take?",
+      "rank": 1
+    },
+    {
+      "id": "bank_never_asks",
+      "question": "Will the bank ever ask for my OTP over the phone?",
+      "rank": 1
+    },
+    {
+      "id": "human_cases",
+      "question": "Which fraud cases are handled by a human and not by the chatbot?",
+      "rank": 1
+    },
+    {
+      "id": "grievance_levels",
+      "question": "How do I escalate a complaint that the branch did not resolve?",
+      "rank": 1
+    },
+    {
+      "id": "ombudsman_deadline",
+      "question": "By when can I go to the Banking Ombudsman?",
+      "rank": 1
+    },
+    {
+      "id": "dormant",
+      "question": "When does my account become dormant?",
+      "rank": 1
+    },
+    {
+      "id": "nri",
+      "question": "Can an NRI open this savings account?",
+      "rank": 1
+    },
+    {
+      "id": "kyc_docs",
+      "question": "Which documents do I need to open an account?",
+      "rank": 2
+    },
+    {
+      "id": "salary_conversion",
+      "question": "What if my salary stops coming to my salary account?",
+      "rank": 1
+    },
+    {
+      "id": "closure_charge",
+      "question": "Is there a charge for closing my savings account?",
+      "rank": 1
+    },
+    {
+      "id": "locker",
+      "question": "How much does a locker cost per year?",
+      "rank": 1
+    },
+    {
+      "id": "cheque_return",
+      "question": "What is the penalty if my cheque bounces?",
+      "rank": 2
+    },
+    {
+      "id": "home_loan",
+      "question": "Do you give home loans?",
+      "rank": 1
+    }
+  ]
+}

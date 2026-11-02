@@ -13,6 +13,9 @@ CHUNK_OVERLAP=40
 
 FOOTER_PREFIX = "SecureBank Ltd. |"
 
+# A numbered section title on its own line: "6. Non-maintenance of Minimum Balance", "4.1 Salary account conversion"
+SECTION_HEADING = re.compile(r"^\d+(?:\.\d+)?\.?\s+[A-Z][^\n]{2,80}$", re.MULTILINE)
+
 def word_count(text:str)->int:
     return len(text.split())
 
@@ -41,14 +44,41 @@ def clean_page_text(text:str) -> str:
     return "\n".join(kept)
 
 
+def document_title(filename: str) -> str:
+    """'03_debit_and_credit_card_terms.pdf' -> 'Debit and credit card terms'"""
+    words = Path(filename).stem.split("_")[1:]
+    return " ".join(words).capitalize()
+
+
 def split_pages(pages):
-    """Cut edges into overlapping chunks of about CHUNK_SIZE words."""
+    """Cut pages into overlapping chunks of about CHUNK_SIZE words.
+
+    A table row or a short paragraph on its own often says nothing about what it belongs to ("Rs. 1,000"
+    of what?). So every chunk starts with a label: the document title and the section heading it sits under.
+    The label is searched and shown to the LLM together with the text.
+    """
     splitter = RecursiveCharacterTextSplitter(
         chunk_size = CHUNK_SIZE,
         chunk_overlap = CHUNK_OVERLAP,
         length_function = word_count,
+        add_start_index = True,
     )
-    return splitter.split_documents(pages)
+    chunks = []
+    heading = ""
+    for page in pages:
+        if page.metadata["page"] == 1:
+            heading = ""            # a new document starts
+        found = [(m.start(), m.group().strip()) for m in SECTION_HEADING.finditer(page.page_content)]
+        for chunk in splitter.split_documents([page]):
+            start = chunk.metadata["start_index"]
+            section = next((text for position, text in reversed(found) if position <= start), heading)
+            label = " | ".join(part for part in (document_title(chunk.metadata["source"]), section) if part)
+            chunk.metadata["section"] = section
+            chunk.page_content = f"[{label}]\n{chunk.page_content}"
+            chunks.append(chunk)
+        if found:
+            heading = found[-1][1]
+    return chunks
 
 
 def build_vector_store():
