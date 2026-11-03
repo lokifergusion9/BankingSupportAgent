@@ -13,6 +13,15 @@ COPY src ./src
 COPY data/docs ./data/docs
 ENV PYTHONPATH=/app/src
 
+# Hugging Face's newer "xet" download path fails on some Docker networks; plain HTTPS downloads always work
+ENV HF_HUB_DISABLE_XET=1
+
+# Download the two small AI models now, so the first start does not depend on the internet and is fast.
+# (docker-compose's model-cache volume starts out as a copy of this folder.)
+RUN python -c "from bankingsupportagent.config import EMBEDDING_MODEL, RERANK_MODEL; \
+from sentence_transformers import CrossEncoder, SentenceTransformer; \
+SentenceTransformer(EMBEDDING_MODEL); CrossEncoder(RERANK_MODEL)"
+
 EXPOSE 8000
 # On the first start the app creates its login keys, demo database and policy index by itself.
 # That downloads the AI models, so allow a long start period.

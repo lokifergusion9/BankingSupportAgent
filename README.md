@@ -181,7 +181,10 @@ copy .env.example .env          # add your key
 docker compose up --build
 ```
 
-`data/` and `keys/` are mounted from the host and filled on the first start; models are cached in a volume.
+`data/` and `keys/` are mounted from the host and filled on the first start. The two small AI models are
+downloaded while the image is built (about 3 GB in total), so the first start takes well under a minute and
+does not need Hugging Face. Tested on a fresh machine setup: login, chat, streaming, card confirmation and
+restart persistence all work inside the container.
 
 ## Project layout
 
